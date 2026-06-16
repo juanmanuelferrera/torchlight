@@ -1,0 +1,50 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pariprashnena — Q&A Archive</title>
+<style>
+:root{--bg:#f6f3ee;--card:#fff;--ink:#2b2b2b;--mut:#8a8276;--accent:#7a2e2e;--line:#e7e0d6}
+*{box-sizing:border-box}body{margin:0;font:16px/1.6 -apple-system,Georgia,serif;background:var(--bg);color:var(--ink)}
+header{background:var(--accent);color:#fff;padding:18px 16px}
+header h1{margin:0;font-size:1.3rem}header p{margin:4px 0 0;opacity:.85;font-size:.85rem}
+.wrap{max-width:820px;margin:0 auto;padding:16px}
+#q{width:100%;padding:12px 14px;font-size:1rem;border:1px solid var(--line);border-radius:8px}
+#meta{color:var(--mut);font-size:.82rem;margin:10px 2px}
+.thread{background:var(--card);border:1px solid var(--line);border-radius:8px;margin:8px 0;padding:12px 14px;cursor:pointer}
+.thread:hover{border-color:var(--accent)}
+.thread h3{margin:0;font-size:1.02rem;color:var(--accent);font-weight:600}
+.thread .sub{color:var(--mut);font-size:.78rem;margin-top:3px}
+.ans{border-top:1px solid var(--line);padding:10px 0;white-space:pre-wrap}
+.ans .who{color:var(--mut);font-size:.75rem;margin-bottom:3px}
+.ans a{color:var(--accent);word-break:break-all}
+#back{display:none;margin:6px 0 12px;color:var(--accent);cursor:pointer;font-size:.9rem}
+mark{background:#ffe9a8}
+</style></head><body>
+<header><h1>Pariprashnena — Q&A Archive</h1><p>Read-only archive of a Gauḍīya Vaiṣṇava question-and-answer forum.</p></header>
+<div class="wrap">
+<input id="q" placeholder="Search questions and answers…" autocomplete="off">
+<div id="meta"></div><div id="back">‹ Back to all questions</div>
+<div id="list"></div>
+</div>
+<script>
+let DATA=[],view='list';
+const list=document.getElementById('list'),meta=document.getElementById('meta'),q=document.getElementById('q'),back=document.getElementById('back');
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const link=s=>esc(s).replace(/(https?:\/\/[^\s)]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');
+function renderList(f){
+  const term=(f||'').toLowerCase().trim();
+  let res=DATA;
+  if(term){res=DATA.filter(t=>t.t.toLowerCase().includes(term)||t.a.some(a=>a.x.toLowerCase().includes(term)));}
+  meta.textContent=res.length+' question'+(res.length!=1?'s':'')+(term?' matching “'+term+'”':'')+' · '+DATA.length+' total';
+  list.innerHTML=res.slice(0,400).map((t,i)=>`<div class="thread" data-i="${DATA.indexOf(t)}"><h3>${esc(t.t)}</h3><div class="sub">${t.a.length} answer${t.a.length!=1?'s':''}</div></div>`).join('')+(res.length>400?`<div id="meta">Showing first 400 — refine your search.</div>`:'');
+}
+function renderThread(t){
+  view='thread';back.style.display='block';
+  list.innerHTML=`<div class="thread" style="cursor:default"><h3>${esc(t.t)}</h3><div class="sub">${t.a.length} answers</div></div>`+
+    t.a.map(a=>`<div class="ans"><div class="who">user [${a.u}]</div>${link(a.x)}</div>`).join('');
+  window.scrollTo(0,0);
+}
+list.addEventListener('click',e=>{const c=e.target.closest('.thread[data-i]');if(c)renderThread(DATA[+c.dataset.i]);});
+back.onclick=()=>{view='list';back.style.display='none';renderList(q.value);};
+let tm;q.addEventListener('input',()=>{clearTimeout(tm);tm=setTimeout(()=>{if(view=='thread'){view='list';back.style.display='none';}renderList(q.value);},180);});
+fetch('threads.json').then(r=>r.json()).then(d=>{DATA=d.map(t=>({t:t.title,a:t.answers.map(a=>({u:a.user,x:a.text}))}));renderList('');}).catch(e=>meta.textContent='Error loading data: '+e);
+</script></body></html>
